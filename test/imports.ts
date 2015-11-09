@@ -99,8 +99,7 @@ export default function runTests() {
               <foo xmlns="bar" a="test" />
             </message>`);
 
-        let parsedMsg = registry.import(messageXML);
-        let msg = <Message>parsedMsg;
+        let msg = <Message>registry.import(messageXML);
         t.equal(msg.type, 'normal', 'Message type is "normal"');
         t.equal(msg.id, '123', 'Message id is "123"');
         t.equal(msg.foo.a, 'test', 'Message foo.a is "test"');
@@ -110,8 +109,7 @@ export default function runTests() {
               <foo xmlns="bar" a="test" />
             </presence>`);
 
-        let parsedPres = registry.import(presenceXML);
-        let pres = <Presence>parsedPres;
+        let pres = <Presence>registry.import(presenceXML);
         t.equal(pres.id, '123', 'Presence id is "123"');
         t.equal(pres.foo2.a, 'test', 'Presence foo2.a is "test"');
 
@@ -147,8 +145,7 @@ export default function runTests() {
               </foo>
             </message>`);
 
-        let parsedMsg = registry.import(messageXML);
-        let msg = <Message>parsedMsg;
+        let msg = <Message>registry.import(messageXML);
         t.equal(msg.type, 'normal', 'Message type is "normal"');
         t.equal(msg.id, '123', 'Message id is "123"');
         t.equal(msg.foo.a, 'test', 'Message foo.a is "test"');
@@ -179,8 +176,7 @@ export default function runTests() {
               <multi xmlns="foo" c="3" />
             </message>`);
 
-        let parsedMsg = registry.import(messageXML);
-        let msg = <Message>parsedMsg;
+        let msg = <Message>registry.import(messageXML);
         t.equal(msg.type, 'normal', 'Message type is "normal"');
         t.equal(msg.id, '123', 'Message id is "123"');
         t.ok(msg.multi, 'Message multi exists');
@@ -223,8 +219,7 @@ export default function runTests() {
               <description xmlns="foo" a="test" />
             </message>`);
 
-        let parsedMsg1 = registry.import(message1XML);
-        let msg1 = <Message>parsedMsg1;
+        let msg1 = <Message>registry.import(message1XML);
         t.equal(msg1.description.descType, 'foo', 'Message description.descType is "foo"');
         t.equal(msg1.description.a, 'test', 'Message description.a is "test"');
 
@@ -235,8 +230,7 @@ export default function runTests() {
               <description xmlns="bar" b="test2" />
             </message>`);
 
-        let parsedMsg2 = registry.import(message2XML);
-        let msg2 = <Message>parsedMsg2;
+        let msg2 = <Message>registry.import(message2XML);
         t.equal(msg2.description.descType, 'bar', 'Message description.descType is "bar"');
         t.equal(msg2.description.b, 'test2', 'Message description.b is "test2"');
 

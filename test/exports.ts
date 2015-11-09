@@ -74,8 +74,7 @@ export default function runTests() {
             type: 'normal'
         });
 
-        let reimported = registry.import(output);
-        let msg = <Message>reimported;
+        let msg = <Message>registry.import(output);
         t.equal(msg.type, 'normal', 'Message type is "normal"');
         t.equal(msg.id, '123', 'Message id is "123"');
         t.end();
@@ -104,8 +103,7 @@ export default function runTests() {
             }
         });
 
-        let parsedMsg = registry.import(msgOutput);
-        let msg = <Message>parsedMsg;
+        let msg = <Message>registry.import(msgOutput);
         t.equal(msg.type, 'normal', 'Message type is "normal"');
         t.equal(msg.id, '123', 'Message id is "123"');
         t.equal(msg.foo.a, 'test', 'Message foo.a is "test"');
@@ -117,8 +115,7 @@ export default function runTests() {
             }
         });
 
-        let parsedPres = registry.import(presenceOutput);
-        let pres = <Presence>parsedPres;
+        let pres = <Presence>registry.import(presenceOutput);
         t.equal(pres.id, '123', 'Presence id is "123"');
         t.equal(pres.foo2.a, 'test', 'Presence foo2.a is "test"');
 
@@ -161,8 +158,7 @@ export default function runTests() {
             }
         });
 
-        let parsedMsg = registry.import(msgOutput);
-        let msg = <Message>parsedMsg;
+        let msg = <Message>registry.import(msgOutput);
         t.equal(msg.type, 'normal', 'Message type is "normal"');
         t.equal(msg.id, '123', 'Message id is "123"');
         t.equal(msg.foo.a, 'test', 'Message foo.a is "test"');
@@ -195,8 +191,7 @@ export default function runTests() {
             ]
         });
 
-        let parsedMsg = registry.import(msgOutput);
-        let msg = <Message>parsedMsg;
+        let msg = <Message>registry.import(msgOutput);
         t.equal(msg.type, 'normal', 'Message type is "normal"');
         t.equal(msg.id, '123', 'Message id is "123"');
         t.ok(msg.multi, 'Message multi exists');
