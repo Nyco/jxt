@@ -7,7 +7,8 @@ import {
     FieldExporter,
     FieldDefinition,
     DefinitionOptions,
-    LinkOptions
+    LinkOptions,
+    TranslationContext
 } from './Definitions';
 
 import { Translator } from './Translator';
@@ -22,16 +23,16 @@ export class Registry {
         this.root = new Translator();
     }
 
-    public import(xml: XMLData): JSONData {
+    public import(xml: XMLData, context: TranslationContext = {}): JSONData {
         let translator = this.findTranslator(xml.getNS(), xml.getName());
         if (!translator) {
             return null;
         }
 
-        return translator.import(xml);
+        return translator.import(xml, context);
     }
 
-    public export(path: string, data: JSONData): XMLData {
+    public export(path: string, data: JSONData, context: TranslationContext = {}): XMLData {
         let fields = path.split('.').filter(item => {
             return item !== '';
         });
@@ -44,7 +45,7 @@ export class Registry {
             }
         }
 
-        return translator.export(data);
+        return translator.export(data, context);
     }
 
     public define(definition: DefinitionOptions): void {
@@ -72,6 +73,9 @@ export class Registry {
 
         if (definition.typeField) {
             translator.typeField = definition.typeField;
+        }
+        if (definition.languageField) {
+            translator.languageField = definition.languageField;
         }
 
         translator.updateDefinition({

@@ -7,7 +7,8 @@ import {
     Type,
     DefinitionUpdateOptions,
     XMLData,
-    JSONData
+    JSONData,
+    TranslationContext
 } from './Definitions';
 
 import { createElement } from './Types';
@@ -17,6 +18,7 @@ import { createElement } from './Types';
 export class Translator {
     public typeField: FieldName;
     public typeValues: Map<XName, Type>;
+    public languageField: FieldName;
     private importers: Map<XName, Importer>;
     private exporters: Map<Type, Exporter>;
     private children: Map<FieldName, ChildTranslator>;
@@ -24,6 +26,7 @@ export class Translator {
 
     constructor() {
         this.typeField = '';
+        this.languageField = 'lang';
         this.typeValues = new Map();
         this.importers = new Map();
         this.exporters = new Map();
@@ -104,7 +107,7 @@ export class Translator {
         }
     }
 
-    public import(xml: XMLData): JSONData {
+    public import(xml: XMLData, parentContext: TranslationContext = {}): JSONData {
         let xid = `{${xml.getNS()}}${xml.getName()}`;
         let output = {};
 
@@ -113,12 +116,16 @@ export class Translator {
             return null;
         }
 
+        let context = Object.assign({}, parentContext, {
+            lang: xml.getAttr('xml:lang') || parentContext.lang
+        });
+
         if (this.typeField && this.typeValues.get(xid)) {
             output[this.typeField] = this.typeValues.get(xid);
         }
 
         importer.fields.forEach((importField, fieldName) => {
-            let value = importField(xml);
+            let value = importField(xml, context);
             if (value !== null && value !== undefined) {
                 output[fieldName] = value;
             }
@@ -136,7 +143,7 @@ export class Translator {
                 let fieldName = this.childrenIndex.get(childName);
                 let { translator, multiple } = this.children.get(fieldName);
 
-                let childOutput = translator.import(child);
+                let childOutput = translator.import(child, context);
                 if (childOutput) {
                     if (multiple) {
                         if (!output[fieldName]) {
@@ -153,7 +160,7 @@ export class Translator {
         return output;
     }
 
-    public export(data: JSONData, namespace?: string): XMLData {
+    public export(data: JSONData, parentContext: TranslationContext = {}): XMLData {
         let exportType = '';
         if (this.typeField) {
             exportType = data[this.typeField] || '';
@@ -163,10 +170,23 @@ export class Translator {
             return null;
         }
 
-        let output = createElement(exporter.namespace, exporter.element, namespace);
+        let output = createElement(exporter.namespace, exporter.element, parentContext.namespace);
+        let context = Object.assign({}, parentContext, {
+            namespace: exporter.namespace,
+            lang: data[this.languageField] || parentContext.lang
+        });
+
+        let langExporter = exporter.fields.get(this.languageField);
+        if (langExporter) {
+            langExporter(output, data[this.languageField], parentContext);
+        }
 
         Object.keys(data).forEach(key => {
             if (!Object.prototype.hasOwnProperty.call(data, key)) {
+                return;
+            }
+            if (key === this.languageField) {
+                // We've already processed this field
                 return;
             }
 
@@ -174,7 +194,7 @@ export class Translator {
             let fieldExporter = exporter.fields.get(key);
 
             if (fieldExporter) {
-                fieldExporter(output, value);
+                fieldExporter(output, value, context);
             } else {
                 let childTranslator = this.children.get(key);
                 if (!childTranslator) {
@@ -191,7 +211,7 @@ export class Translator {
                 }
 
                 for (let item of items) {
-                    let childOutput = translator.export(item, exporter.namespace);
+                    let childOutput = translator.export(item, context);
                     if (childOutput) {
                         output.cnode(childOutput);
                     }

@@ -19,8 +19,8 @@ export interface XMLData {
 export type FieldName = string;
 export type XName = string;
 export type Type = string;
-export type FieldImporter = (xml: XMLData) => any;
-export type FieldExporter = (xml: XMLData, data: any) => void;
+export type FieldImporter = (xml: XMLData, context: TranslationContext) => any;
+export type FieldExporter = (xml: XMLData, data: any, context: TranslationContext) => void;
 
 export interface FieldDefinition {
     importer: FieldImporter;
@@ -57,8 +57,9 @@ export interface DefinitionOptions {
     namespace: string;
     element: string;
     typeField?: string;
+    languageField?: string;
     type?: string;
-    fields?: Object;
+    fields?: {[key: string]: FieldDefinition};
     path?: string;
     aliases?: Array<string|LinkPath>;
 }
@@ -73,4 +74,9 @@ export interface LinkOptions {
     element: string;
     path: string|Array<string>;
     multiple?: boolean;
+}
+
+export interface TranslationContext {
+    lang?: string;
+    namespace?: string;
 }

@@ -25,8 +25,8 @@
     "babel-compile": "babel --optional runtime -sd lib/ src",
     "compile": "npm run clean && npm run -s ts-compile && npm run -s babel-compile && rm -rf test/**.d.ts",
     "clean": "rm -rf src/**.js && rm -rf test/**.js && rm -rf src/**.d.ts && rm -rf test/**.d.ts",
-    "test": "npm run -s compile && babel-node ./node_modules/.bin/isparta cover --report text --report html --report lcov test/ | tap-spec",
-    "basic-test": "npm run -s compile && babel-node test",
+    "test": "npm run -s compile && babel-node test | tap-spec",
+    "coverage-test": "npm run -s compile && babel-node ./node_modules/.bin/isparta cover --report text --report html --report lcov test/ | tap-spec",
     "prepublish": "npm run compile"
   },
   "pre-commit": [

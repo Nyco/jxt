@@ -20,9 +20,7 @@ interface Message {
         a?: string;
         b?: string;
     };
-    multi?: Array<{
-        c: string;
-    }>;
+    multi?: Array<{ c: string; }>;
 }
 
 interface Presence {

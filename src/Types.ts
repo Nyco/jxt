@@ -1,5 +1,5 @@
 import * as ltx from 'ltx';
-import { XMLData, JSONData, FieldDefinition } from './Definitions';
+import { XMLData, JSONData, FieldDefinition, TranslationContext } from './Definitions';
 
 
 export function createElement(namespace: string, name: string, parentNamespace: string): XMLData {
@@ -12,17 +12,40 @@ export function createElement(namespace: string, name: string, parentNamespace: 
     return el;
 }
 
-export function findOrCreate(xml: XMLData, namespace: string, element: string): XMLData {
-    let existing = xml.getChild(element, namespace);
-    if (existing) {
-        return existing;
+export function findAll(xml: XMLData, namespace: string, element: string, lang?: string): Array<XMLData> {
+    let existing = xml.getChildren(element, namespace);
+    let parentLang = xml.getAttr('xml:lang');
+
+    if (existing.length) {
+        if (lang) {
+            return existing.filter(child => {
+                let childLang = child.getAttr('xml:lang') || parentLang;
+                if (childLang === lang) {
+                    return true;
+                }
+            });
+        } else {
+            return existing;
+        }
+    }
+
+    return [];
+}
+
+export function findOrCreate(xml: XMLData, namespace: string, element: string, lang?: string): XMLData {
+    let existing = findAll(xml, namespace, element, lang);
+    if (existing.length) {
+        return existing[0];
     }
 
     let created = createElement(namespace, element, xml.getNS());
+    let parentLang = xml.getAttr('xml:lang');
+    if (lang && parentLang !== lang) {
+        created.attr('xml:lang', lang);
+    }
     xml.cnode(created);
     return created;
 }
-
 
 export function attribute(name: string, defaultValue?: string): FieldDefinition {
     return {
@@ -57,6 +80,7 @@ export function integerAttribute(name: string, defaultValue?: number): FieldDefi
         importer(xml: XMLData) {
             let data = xml.getAttr(name);
             if (data) {
+
                 return parseInt(data, 10);
             } else if (defaultValue) {
                 return defaultValue;
@@ -110,11 +134,13 @@ export function dateAttribute(name: string, useCurrentDate: boolean = false): Fi
 
 export function languageAttribute(): FieldDefinition {
     return {
-        importer(xml: XMLData) {
-            return xml.getAttr('xml:lang');
+        importer(xml: XMLData, context: TranslationContext) {
+            return xml.getAttr('xml:lang') || context.lang;
         },
-        exporter(xml: XMLData, value: string) {
-            xml.attr('xml:lang', value);
+        exporter(xml: XMLData, value: string, context: TranslationContext) {
+            if (value !== context.lang) {
+                xml.attr('xml:lang', value);
+            }
         }
     };
 }
@@ -137,7 +163,7 @@ export function textBuffer(encoding: string = 'utf8'): FieldDefinition {
             if (encoding === 'base64' && data === '=') {
                 data = '';
             }
-            return new Buffer(xml.getText(), encoding);
+            return new Buffer(xml.getText().trim(), encoding);
         },
         exporter(xml: XMLData, value: Buffer|string) {
             let data: string;
@@ -157,16 +183,16 @@ export function textBuffer(encoding: string = 'utf8'): FieldDefinition {
 export function childAttribute(namespace: string, element: string, name: string, defaultValue?: string): FieldDefinition {
     let converter = attribute(name, defaultValue);
     return {
-        importer(xml: XMLData) {
+        importer(xml: XMLData, context: TranslationContext) {
             let child = xml.getChild(element, namespace);
             if (!child) {
                 return defaultValue;
             }
-            return converter.importer(child);
+            return converter.importer(child, context);
         },
-        exporter(xml: XMLData, value: string) {
+        exporter(xml: XMLData, value: string, context: TranslationContext) {
             let child = findOrCreate(xml, namespace, element);
-            return converter.exporter(child, value);
+            return converter.exporter(child, value, context);
         }
     };
 }
@@ -174,16 +200,16 @@ export function childAttribute(namespace: string, element: string, name: string,
 export function childBooleanAttribute(namespace: string, element: string, name: string): FieldDefinition {
     let converter = booleanAttribute(name);
     return {
-        importer(xml: XMLData) {
+        importer(xml: XMLData, context: TranslationContext) {
             let child = xml.getChild(element, namespace);
             if (!child) {
                 return;
             }
-            return converter.importer(child);
+            return converter.importer(child, context);
         },
-        exporter(xml: XMLData, value: boolean) {
+        exporter(xml: XMLData, value: boolean, context: TranslationContext) {
             let child = findOrCreate(xml, namespace, element);
-            return converter.exporter(child, value);
+            return converter.exporter(child, value, context);
         }
     };
 }
@@ -191,16 +217,16 @@ export function childBooleanAttribute(namespace: string, element: string, name: 
 export function childIntegerAttribute(namespace: string, element: string, name: string, defaultValue?: number): FieldDefinition {
     let converter = integerAttribute(name, defaultValue);
     return {
-        importer(xml: XMLData) {
+        importer(xml: XMLData, context: TranslationContext) {
             let child = xml.getChild(element, namespace);
             if (!child) {
                 return defaultValue;
             }
-            return converter.importer(child);
+            return converter.importer(child, context);
         },
-        exporter(xml: XMLData, value: number) {
+        exporter(xml: XMLData, value: number, context: TranslationContext) {
             let child = findOrCreate(xml, namespace, element);
-            return converter.exporter(child, value);
+            return converter.exporter(child, value, context);
         }
     };
 }
@@ -208,16 +234,16 @@ export function childIntegerAttribute(namespace: string, element: string, name: 
 export function childFloatAttribute(namespace: string, element: string, name: string, defaultValue?: number): FieldDefinition {
     let converter = floatAttribute(name, defaultValue);
     return {
-        importer(xml: XMLData) {
+        importer(xml: XMLData, context: TranslationContext) {
             let child = xml.getChild(element, namespace);
             if (!child) {
                 return defaultValue;
             }
-            return converter.importer(child);
+            return converter.importer(child, context);
         },
-        exporter(xml: XMLData, value: number) {
+        exporter(xml: XMLData, value: number, context: TranslationContext) {
             let child = findOrCreate(xml, namespace, element);
-            return converter.exporter(child, value);
+            return converter.exporter(child, value, context);
         }
     };
 }
@@ -225,7 +251,7 @@ export function childFloatAttribute(namespace: string, element: string, name: st
 export function childDateAttribute(namespace: string, element: string, name: string, useCurrentDate: boolean = false): FieldDefinition {
     let converter = dateAttribute(name, useCurrentDate);
     return {
-        importer(xml: XMLData) {
+        importer(xml: XMLData, context: TranslationContext) {
             let child = xml.getChild(element, namespace);
             if (!child) {
                 if (useCurrentDate) {
@@ -233,11 +259,11 @@ export function childDateAttribute(namespace: string, element: string, name: str
                 }
                 return null;
             }
-            return converter.importer(child);
+            return converter.importer(child, context);
         },
-        exporter(xml: XMLData, value: Date|string) {
+        exporter(xml: XMLData, value: Date|string, context: TranslationContext) {
             let child = findOrCreate(xml, namespace, element);
-            return converter.exporter(child, value);
+            return converter.exporter(child, value, context);
         }
     };
 }
@@ -245,31 +271,31 @@ export function childDateAttribute(namespace: string, element: string, name: str
 export function childLanguageAttribute(namespace: string, element: string): FieldDefinition {
     let converter = languageAttribute();
     return {
-        importer(xml: XMLData) {
+        importer(xml: XMLData, context: TranslationContext) {
             let child = xml.getChild(element, namespace);
             if (!child) {
                 return null;
             }
-            return converter.importer(child);
+            return converter.importer(child, context);
         },
-        exporter(xml: XMLData, value: string) {
+        exporter(xml: XMLData, value: string, context: TranslationContext) {
             let child = findOrCreate(xml, namespace, element);
-            return converter.exporter(child, value);
+            return converter.exporter(child, value, context);
         }
     };
 }
 
 export function childText(namespace: string, element: string, defaultValue?: string): FieldDefinition {
     return {
-        importer(xml: XMLData) {
-            let child = xml.getChild(element, namespace);
-            if (!child) {
+        importer(xml: XMLData, context: TranslationContext) {
+            let children = findAll(xml, namespace, element, context.lang);
+            if (!children.length) {
                 return defaultValue;
             }
-            return child.getText() || defaultValue;
+            return children[0].getText() || defaultValue;
         },
-        exporter(xml: XMLData, value: string) {
-            let child = findOrCreate(xml, namespace, element);
+        exporter(xml: XMLData, value: string, context: TranslationContext) {
+            let child = findOrCreate(xml, namespace, element, context.lang);
             child.children.push(value);
         }
     };
@@ -279,7 +305,7 @@ export function childTextBuffer(namespace: string, element: string, encoding: st
     return {
         importer(xml: XMLData) {
             let child = xml.getChild(element, namespace);
-            let data = child ? child.getText() || '' : '';
+            let data = child ? child.getText().trim() || '' : '';
             if (encoding === 'base64' && data === '=') {
                 data = '';
             }
@@ -412,15 +438,15 @@ export function childEnum(namespace: string, elements: Array<string>): FieldDefi
 
 export function multipleChildText(namespace: string, element: string): FieldDefinition {
     return {
-        importer(xml: XMLData) {
+        importer(xml: XMLData, context: TranslationContext) {
             let result: Array<string> = [];
-            let children = xml.getChildren(element, namespace);
+            let children = findAll(xml, namespace, element, context.lang);
             for (let child of children) {
                 result.push(child.getText());
             }
             return result;
         },
-        exporter(xml: XMLData, values: Array<string>) {
+        exporter(xml: XMLData, values: Array<string>, context: TranslationContext) {
             for (let value of values) {
                 let child = createElement(namespace, element, xml.getNS());
                 child.children.push(value);
@@ -446,6 +472,68 @@ export function multipleChildAttribute(namespace: string, element: string, name:
                 child.attr(name, value);
                 xml.cnode(child);
             }
+        }
+    };
+}
+
+export function childAlternateLanguageText(namespace: string, element: string): FieldDefinition {
+    return {
+        importer(xml: XMLData, context: TranslationContext) {
+            let results = {};
+            let children = findAll(xml, namespace, element);
+            for (let child of children) {
+                let lang = child.getAttr('xml:lang') || context.lang;
+                results[lang] = child.getText();
+            }
+            return results;
+        },
+        exporter(xml: XMLData, values: {[key: string]: string}, context: TranslationContext) {
+            Object.keys(values).forEach(lang => {
+                if (!values.hasOwnProperty(lang)) {
+                    return;
+                }
+
+                let text = values[lang];
+                let child = createElement(namespace, element, context.namespace);
+                if (lang !== context.lang) {
+                    child.attr('xml:lang', lang);
+                }
+                child.children.push(text);
+                xml.cnode(child);
+            });
+        }
+    };
+}
+
+export function multipleChildAlternateLanguageText(namespace: string, element: string): FieldDefinition {
+    return {
+        importer(xml: XMLData, context: TranslationContext) {
+            let results = {};
+            let children = findAll(xml, namespace, element);
+            for (let child of children) {
+                let lang = child.getAttr('xml:lang') || context.lang;
+                if (!results[lang]) {
+                    results[lang] = [];
+                }
+                results[lang].push(child.getText());
+            }
+            return results;
+        },
+        exporter(xml: XMLData, values: {[key: string]: Array<string>}, context: TranslationContext) {
+            Object.keys(values).forEach(lang => {
+                if (!values.hasOwnProperty(lang)) {
+                    return;
+                }
+                let entries = values[lang];
+                for (let text of entries) {
+                    let child = createElement(namespace, element, context.namespace);
+                    if (lang !== context.lang) {
+                        child.attr('xml:lang', lang);
+                    }
+                    child.children.push(text);
+                    xml.cnode(child);
+                }
+            });
         }
     };
 }
